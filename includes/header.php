@@ -16,9 +16,30 @@
                     <li class="nav-item">
                         <a class="nav-link" href="index.php">Réserver</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="admin.php">Espace Admin</a>
-                    </li>
+                    
+                    <?php if(isset($_SESSION['role'])): ?>
+                        <?php if($_SESSION['role'] === 'admin'): ?>
+                            <li class="nav-item">
+                                <a class="nav-link fw-bold text-warning" href="admin.php">Espace Admin</a>
+                            </li>
+                        <?php else: ?>
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="#">👤 Mon Espace</a>
+                            </li>
+                        <?php endif; ?>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="logout.php">Déconnexion</a>
+                        </li>
+                    
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="login.php">Connexion</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-light btn-sm ms-2 mt-1" href="inscription.php">S'inscrire</a>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

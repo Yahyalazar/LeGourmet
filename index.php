@@ -1,7 +1,18 @@
 <?php
-// Inclusion de la connexion à la base de données et de l'en-tête
+// index.php
 require_once 'config/database.php';
+
+// VÉRIFICATION DE SÉCURITÉ : Le client doit être connecté pour réserver
+if (!isset($_SESSION['utilisateur_id'])) {
+    // S'il n'est pas connecté, on l'envoie vers la page de connexion avec un message spécifique
+    header("Location: login.php?erreur=connexion_requise_reservation");
+    exit;
+}
+
 require_once 'includes/header.php';
+
+// Récupération des créneaux pour le menu déroulant du formulaire
+// ... (le reste de votre code ne change pas)
 
 // Récupération des créneaux pour le menu déroulant du formulaire
 try {

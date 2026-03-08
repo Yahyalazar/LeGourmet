@@ -1,8 +1,16 @@
 <?php
 // admin.php
 require_once 'config/database.php';
-require_once 'includes/header.php';
 
+// 2. VÉRIFICATION DE SÉCURITÉ (Redirection vers login.php)
+// Si la variable de session 'role' n'existe pas, OU si elle est différente de 'admin'
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    // On redirige immédiatement vers la page de connexion
+    header("Location: login.php?erreur=connexion_requise");
+    exit; // On stoppe l'exécution du reste de la page
+}
+
+require_once 'includes/header.php';
 // Requête SQL avec JOIN pour récupérer toutes les infos utiles
 try {
     $sql = "

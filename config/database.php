@@ -1,4 +1,5 @@
 <?php
+session_start(); // À AJOUTER ICI : Démarre le système de connexion
 // config/database.php
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'reservation_restaurant'); 

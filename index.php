@@ -1,26 +1,26 @@
 <?php
-// index.php
-require_once 'config/database.php';
+    // index.php
+    require_once 'config/database.php';
 
-// VÉRIFICATION DE SÉCURITÉ : Le client doit être connecté pour réserver
-if (!isset($_SESSION['utilisateur_id'])) {
+    // VÉRIFICATION DE SÉCURITÉ : Le client doit être connecté pour réserver
+    if (! isset($_SESSION['utilisateur_id'])) {
     // S'il n'est pas connecté, on l'envoie vers la page de connexion avec un message spécifique
     header("Location: login.php?erreur=connexion_requise_reservation");
     exit;
-}
+    }
 
-require_once 'includes/header.php';
+    require_once 'includes/header.php';
 
-// Récupération des créneaux pour le menu déroulant du formulaire
-// ... (le reste de votre code ne change pas)
+    // Récupération des créneaux pour le menu déroulant du formulaire
+    // ... (le reste de votre code ne change pas)
 
-// Récupération des créneaux pour le menu déroulant du formulaire
-try {
-    $stmt = $pdo->query("SELECT id, heure, service FROM creneaux ORDER BY service, heure");
+    // Récupération des créneaux pour le menu déroulant du formulaire
+    try {
+    $stmt           = $pdo->query("SELECT id, heure, service FROM creneaux ORDER BY service, heure");
     $liste_creneaux = $stmt->fetchAll();
-} catch(PDOException $e) {
+    } catch (PDOException $e) {
     die("Erreur lors de la récupération des créneaux : " . $e->getMessage());
-}
+    }
 ?>
 
 <?php if (isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['code'])): ?>
@@ -28,7 +28,7 @@ try {
         <h4 class="alert-heading">Réservation confirmée !</h4>
         <p>Votre table a été attribuée avec succès grâce à notre système automatique.</p>
         <hr>
-        <p class="mb-0">Votre code de confirmation est : <strong class="fs-4"><?= htmlspecialchars($_GET['code']) ?></strong>.</p>
+        <p class="mb-0">Votre code de confirmation est : <strong class="fs-4"><?php echo htmlspecialchars($_GET['code']) ?></strong>.</p>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
     </div>
 
@@ -47,7 +47,7 @@ try {
             </div>
             <div class="card-body">
                 <form action="traitement_reservation.php" method="POST">
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="nom_client" class="form-label">Nom complet *</label>
@@ -67,15 +67,21 @@ try {
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="date_reservation" class="form-label">Date *</label>
-                            <input type="date" class="form-control" id="date_reservation" name="date_reservation" required>
+                            <input type="date" class="form-control" id="date_reservation" name="date_reservation" required min="<?php echo date('Y-m-d') ?>">
+                            <?php if (isset($_GET['erreur']) && $_GET['erreur'] === 'date_invalide'): ?>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <strong>Erreur :</strong> Vous ne pouvez pas sélectionner une date dans le passé.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+<?php endif; ?>
                         </div>
                         <div class="col-md-4">
                             <label for="creneau_id" class="form-label">Heure / Service *</label>
                             <select class="form-select" id="creneau_id" name="creneau_id" required>
                                 <option value="">Choisissez un créneau...</option>
-                                <?php foreach($liste_creneaux as $creneau): ?>
-                                    <option value="<?= $creneau['id'] ?>">
-                                        <?= htmlspecialchars($creneau['heure']) ?> (Service du <?= htmlspecialchars($creneau['service']) ?>)
+                                <?php foreach ($liste_creneaux as $creneau): ?>
+                                    <option value="<?php echo $creneau['id'] ?>">
+                                        <?php echo htmlspecialchars($creneau['heure']) ?> (Service du <?php echo htmlspecialchars($creneau['service']) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -101,6 +107,6 @@ try {
 </div>
 
 <?php
-// Inclusion du pied de page
+    // Inclusion du pied de page
 require_once 'includes/footer.php';
 ?>

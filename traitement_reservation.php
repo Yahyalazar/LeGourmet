@@ -1,91 +1,63 @@
 <?php
-// Inclusion de la connexion à la base de données
+// traitement_reservation.php
 require_once 'config/database.php';
 
-// Vérification que le formulaire a bien été soumis via la méthode POST
+// Sécurité : On vérifie que l'utilisateur est bien connecté
+if (!isset($_SESSION['utilisateur_id'])) {
+    header("Location: login.php?erreur=connexion_requise");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // 1. Récupération et sécurisation des données du formulaire
+    // 1. Récupération des données du formulaire et de la session
+    $utilisateur_id = $_SESSION['utilisateur_id']; // L'ID du client connecté
     $nom_client = htmlspecialchars($_POST['nom_client']);
-    $email = htmlspecialchars($_POST['email']);
     $telephone = htmlspecialchars($_POST['telephone']);
     $date_reservation = $_POST['date_reservation'];
-    $creneau_id = (int)$_POST['creneau_id'];
     $nombre_personnes = (int)$_POST['nombre_personnes'];
-    $commentaires = htmlspecialchars($_POST['commentaires']);
+    $creneau_id = (int)$_POST['creneau_id'];
+    $commentaires = htmlspecialchars($_POST['commentaires'] ?? '');
+    $date_reservation = $_POST['date_reservation'];
+
+    // --- NOUVEAU BLOC : VALIDATION DE LA DATE ---
+    $date_aujourdhui = date('Y-m-d'); // Récupère la date du jour
+    if ($date_reservation < $date_aujourdhui) {
+        // Si la date choisie est avant aujourd'hui, on bloque et on renvoie une erreur
+        header("Location: index.php?erreur=date_invalide");
+        exit;
+    }
+    
+    // 2. Génération d'un code de confirmation unique (ex: RES-4A8B2C)
+    $code_confirmation = strtoupper(substr(uniqid('RES-'), 0, 10));
 
     try {
-        // 2. ALGORITHME D'ATTRIBUTION AUTOMATIQUE DES TABLES 
-        // On cherche une table dont la capacité est suffisante et qui n'est pas déjà réservée
-        $sql_recherche_table = "
-            SELECT id FROM tables_restaurant 
-            WHERE capacite >= :nombre_personnes 
-            AND id NOT IN (
-                SELECT table_id FROM reservations 
-                WHERE date_reservation = :date_reservation 
-                AND creneau_id = :creneau_id 
-                AND statut IN ('en_attente', 'confirmee')
-                AND table_id IS NOT NULL
-            )
-            ORDER BY capacite ASC -- On prend la table la plus petite possible pour optimiser l'espace
-            LIMIT 1
-        ";
+        // 3. Préparation de la requête SQL (C'est ici que l'erreur se trouvait)
+        $sql_insert = "INSERT INTO reservations (utilisateur_id, nom_client, telephone, date_reservation, nombre_personnes, creneau_id, statut, code_confirmation, commentaires) 
+                VALUES (:utilisateur_id, :nom, :tel, :date_res, :personnes, :creneau, 'en_attente', :code, :commentaires)";
+
+        $stmt = $pdo->prepare($sql_insert);
         
-        $stmt_table = $pdo->prepare($sql_recherche_table);
-        $stmt_table->execute([
-            ':nombre_personnes' => $nombre_personnes,
-            ':date_reservation' => $date_reservation,
-            ':creneau_id' => $creneau_id
+        // 4. Exécution de la requête avec les paramètres sécurisés
+        $stmt->execute([
+            ':utilisateur_id' => $utilisateur_id,
+            ':nom' => $nom_client,
+            ':tel' => $telephone,
+            ':date_res' => $date_reservation,
+            ':personnes' => $nombre_personnes,
+            ':creneau' => $creneau_id,
+            ':code' => $code_confirmation,
+            ':commentaires' => $commentaires
         ]);
-        
-        $table_disponible = $stmt_table->fetch();
-        
-        if ($table_disponible) {
-            // Une table est libre ! On la sélectionne.
-            $table_id = $table_disponible['id'];
-            $statut = 'confirmee'; 
-            
-            // Génération d'un code de confirmation aléatoire (ex: 8A4F9B) [cite: 36]
-            $code_confirmation = strtoupper(substr(uniqid(), -6));
-            
-            // 3. Insertion de la réservation dans la base de données [cite: 17-32]
-            $sql_insert = "
-                INSERT INTO reservations 
-                (nom_client, email, telephone, date_reservation, creneau_id, table_id, nombre_personnes, commentaires, statut, code_confirmation) 
-                VALUES 
-                (:nom, :email, :tel, :date_res, :creneau, :table, :nb_pers, :comms, :statut, :code)
-            ";
-            
-            $stmt_insert = $pdo->prepare($sql_insert);
-            $stmt_insert->execute([
-                ':nom' => $nom_client,
-                ':email' => $email,
-                ':tel' => $telephone,
-                ':date_res' => $date_reservation,
-                ':creneau' => $creneau_id,
-                ':table' => $table_id,
-                ':nb_pers' => $nombre_personnes,
-                ':comms' => $commentaires,
-                ':statut' => $statut,
-                ':code' => $code_confirmation
-            ]);
-            
-            // Redirection vers l'accueil avec un message de succès (à gérer dans index.php)
-            header("Location: index.php?success=1&code=" . $code_confirmation);
-            exit;
-            
-        } else {
-            // 4. BLOCAGE DES CRÉNEAUX COMPLETS 
-            // Aucune table n'a la capacité requise ou toutes sont prises
-            header("Location: index.php?error=full");
-            exit;
-        }
+
+        // 5. Redirection vers l'accueil avec un message de succès
+        header("Location: index.php?success=1&code=" . $code_confirmation);
+        exit;
 
     } catch(PDOException $e) {
-        die("Erreur lors du traitement de la réservation : " . $e->getMessage());
+        die("Erreur lors de la réservation : " . $e->getMessage());
     }
 } else {
-    // Si on essaie d'accéder au fichier sans valider le formulaire, on renvoie à l'accueil
+    // Si on accède à la page sans soumettre le formulaire
     header("Location: index.php");
     exit;
 }

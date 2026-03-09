@@ -24,7 +24,7 @@
                             </li>
                         <?php else: ?>
                             <li class="nav-item">
-                                <a class="nav-link text-info" href="#">👤 Mon Espace</a>
+                                <a class="nav-link text-info" href="mes_reservations.php">👤 Mon Espace</a>
                             </li>
                         <?php endif; ?>
                         

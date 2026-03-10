@@ -1,4 +1,3 @@
-# LeGourmet
 # Le Gourmet — Restaurant Gastronomique
 
 ## ⚠️ IMPORTANT — Pourquoi ça ne marche pas sur GitHub Pages

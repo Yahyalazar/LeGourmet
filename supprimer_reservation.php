@@ -1,31 +1,22 @@
 <?php
-// supprimer_reservation.php
 require_once 'config/database.php';
 
-// 1. Vérification de la présence de l'ID dans l'URL (GET)
-if (isset($_GET['id']) && !empty($_GET['id'])) {
-    
-    // On force la conversion en entier (int) pour la sécurité
-    $id = (int)$_GET['id'];
+// Security: admin only
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: login.php"); exit;
+}
 
-    try {
-        // 2. Préparation de la requête de suppression
-        $sql = "DELETE FROM reservations WHERE id = :id";
-        $stmt = $pdo->prepare($sql);
-        
-        // 3. Exécution de la requête
-        $stmt->execute([':id' => $id]);
+if (empty($_GET['id'])) { header("Location: admin.php"); exit; }
 
-        // 4. Redirection vers le tableau de bord avec un paramètre de succès
-        header("Location: admin.php?msg=deleted");
-        exit;
+$id = (int)$_GET['id'];
 
-    } catch(PDOException $e) {
-        die("Erreur lors de la suppression : " . $e->getMessage());
-    }
-} else {
-    // Si on essaie d'accéder à la page sans ID, on redirige vers l'accueil admin
-    header("Location: admin.php");
+try {
+    $stmt = $pdo->prepare("DELETE FROM reservations WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    header("Location: admin.php?msg=deleted");
+    exit;
+} catch (PDOException $e) {
+    error_log("Delete error: " . $e->getMessage());
+    header("Location: admin.php?msg=error");
     exit;
 }
-?>

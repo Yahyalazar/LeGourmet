@@ -90,10 +90,13 @@ const LGToast = (() => {
       show('warning', 'Créneau invalide', 'Le créneau sélectionné n\'existe pas.', 6000);
 
     if (p.get('msg') === 'updated')
-      show('success', 'Réservation modifiée', 'Les changements ont été enregistrés.', 5000);
+      show('success', 'Réservation mise à jour', 'Les modifications ont bien été enregistrées.', 6000);
 
     if (p.get('msg') === 'deleted')
-      show('danger', 'Réservation supprimée', 'La réservation a été définitivement supprimée.', 5000);
+      show('danger', 'Réservation supprimée', 'La réservation a été définitivement supprimée de la base de données.', 7000);
+
+    if (p.get('msg') === 'error')
+      show('warning', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression. Veuillez réessayer.', 7000);
 
     if (p.get('succes') === 'inscription')
       show('success', 'Compte créé !', 'Bienvenue ! Vous pouvez maintenant vous connecter.', 6500);
@@ -517,10 +520,117 @@ function initAdmin() {
   }
 }
 
-// Confirmation suppression (appelé depuis PHP via onclick)
-window.confirmDel = (name) => {
-  return confirm(`⚠ Supprimer la réservation de "${name}" ?\n\nCette action est irréversible.`);
-};
+/* ── Modal de suppression personnalisé (admin) ── */
+(function buildDeleteModal() {
+  const style = document.createElement('style');
+  style.textContent = `
+    #lgDelOverlay {
+      position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9998;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity .22s ease;pointer-events:none;
+      backdrop-filter:blur(3px);
+    }
+    #lgDelOverlay.open { opacity:1;pointer-events:all; }
+    #lgDelBox {
+      background:#0d0d0d;border:1px solid rgba(231,76,60,.22);
+      border-radius:14px;width:100%;max-width:420px;margin:20px;
+      box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 0 1px rgba(231,76,60,.08);
+      transform:translateY(18px) scale(.97);transition:transform .25s cubic-bezier(.22,1,.36,1);
+      overflow:hidden;
+    }
+    #lgDelOverlay.open #lgDelBox { transform:none; }
+    #lgDelHead {
+      background:#0f0505;padding:20px 24px 16px;
+      border-bottom:1px solid rgba(231,76,60,.15);
+      display:flex;align-items:center;gap:12px;
+    }
+    #lgDelHead .del-icon-wrap {
+      width:36px;height:36px;border-radius:50%;flex-shrink:0;
+      background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.28);
+      display:flex;align-items:center;justify-content:center;font-size:1rem;
+    }
+    #lgDelHead .del-title {
+      font-family:'Montserrat',sans-serif;font-size:.66rem;letter-spacing:.22em;
+      text-transform:uppercase;color:#e74c3c;font-weight:600;
+    }
+    #lgDelBody { padding:22px 24px 18px;color:#aaa;font-size:.93rem;line-height:1.65; }
+    #lgDelName {
+      display:inline-block;background:rgba(231,76,60,.08);
+      border:1px solid rgba(231,76,60,.2);border-radius:6px;
+      color:#e8796b;padding:3px 12px;font-weight:600;margin:2px 0;
+    }
+    #lgDelWarn {
+      display:flex;align-items:center;gap:8px;margin-top:14px;
+      background:rgba(231,76,60,.05);border:1px solid rgba(231,76,60,.12);
+      border-radius:8px;padding:10px 14px;font-size:.8rem;color:#876060;
+    }
+    #lgDelFoot {
+      background:#080808;border-top:1px solid #141414;
+      padding:14px 24px;display:flex;gap:10px;justify-content:flex-end;
+    }
+    .lgdel-btn {
+      font-family:'Montserrat',sans-serif;font-size:.62rem;letter-spacing:.18em;
+      text-transform:uppercase;padding:10px 20px;border-radius:7px;
+      cursor:pointer;transition:all .18s;border:1px solid transparent;
+    }
+    .lgdel-cancel {
+      background:#1a1a1a;border-color:#2a2a2a;color:#777;
+    }
+    .lgdel-cancel:hover { background:#222;color:#aaa;border-color:#333; }
+    .lgdel-confirm {
+      background:rgba(231,76,60,.1);border-color:rgba(231,76,60,.4);color:#e74c3c;
+      display:flex;align-items:center;gap:7px;
+    }
+    .lgdel-confirm:hover { background:rgba(231,76,60,.18);border-color:rgba(231,76,60,.6);color:#ff6b5b; }
+  `;
+  document.head.appendChild(style);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'lgDelOverlay';
+  overlay.innerHTML = `
+    <div id="lgDelBox">
+      <div id="lgDelHead">
+        <div class="del-icon-wrap">🗑</div>
+        <div class="del-title">Confirmer la suppression</div>
+      </div>
+      <div id="lgDelBody">
+        Vous êtes sur le point de supprimer définitivement la réservation de
+        <span id="lgDelName"></span>.
+        <div id="lgDelWarn">
+          <span style="font-size:1rem;flex-shrink:0">⚠️</span>
+          <span>Cette action est <strong style="color:#c0706a">irréversible</strong> — aucune récupération possible.</span>
+        </div>
+      </div>
+      <div id="lgDelFoot">
+        <button class="lgdel-btn lgdel-cancel" id="lgDelCancel">Annuler</button>
+        <button class="lgdel-btn lgdel-confirm" id="lgDelConfirm">
+          <span>🗑</span> Supprimer définitivement
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  let _resolve = null;
+  let _href    = null;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+  document.getElementById('lgDelCancel').addEventListener('click',  () => close(false));
+  document.getElementById('lgDelConfirm').addEventListener('click', () => close(true));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _resolve) close(false); });
+
+  function close(confirmed) {
+    overlay.classList.remove('open');
+    if (_resolve) { _resolve(confirmed); _resolve = null; }
+    if (confirmed && _href) { window.location.href = _href; _href = null; }
+  }
+
+  window.confirmDel = function(anchorEl, name) {
+    document.getElementById('lgDelName').textContent = name;
+    _href = anchorEl.href;
+    overlay.classList.add('open');
+    return false; // empêche la navigation immédiate
+  };
+})();
 
 
 /* ================================================================

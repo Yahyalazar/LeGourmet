@@ -1,64 +1,101 @@
 <?php
 // traitement_reservation.php
 require_once 'config/database.php';
+require_once 'includes/reservation_notifier.php';
 
-// Sécurité : On vérifie que l'utilisateur est bien connecté
-if (!isset($_SESSION['utilisateur_id'])) {
+if (! isset($_SESSION['utilisateur_id'])) {
     header("Location: login.php?erreur=connexion_requise");
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Récupération des données du formulaire et de la session
-    $utilisateur_id = $_SESSION['utilisateur_id']; // L'ID du client connecté
-    $nom_client = htmlspecialchars($_POST['nom_client']);
-    $telephone = htmlspecialchars($_POST['telephone']);
-    $date_reservation = $_POST['date_reservation'];
-    $nombre_personnes = (int)$_POST['nombre_personnes'];
-    $creneau_id = (int)$_POST['creneau_id'];
-    $commentaires = htmlspecialchars($_POST['commentaires'] ?? '');
-    $date_reservation = $_POST['date_reservation'];
-
-    // --- NOUVEAU BLOC : VALIDATION DE LA DATE ---
-    $date_aujourdhui = date('Y-m-d'); // Récupère la date du jour
-    if ($date_reservation < $date_aujourdhui) {
-        // Si la date choisie est avant aujourd'hui, on bloque et on renvoie une erreur
-        header("Location: index.php?erreur=date_invalide");
-        exit;
-    }
-    
-    // 2. Génération d'un code de confirmation unique (ex: RES-4A8B2C)
-    $code_confirmation = strtoupper(substr(uniqid('RES-'), 0, 10));
-
-    try {
-        // 3. Préparation de la requête SQL (C'est ici que l'erreur se trouvait)
-        $sql_insert = "INSERT INTO reservations (utilisateur_id, nom_client, telephone, date_reservation, nombre_personnes, creneau_id, statut, code_confirmation, commentaires) 
-                VALUES (:utilisateur_id, :nom, :tel, :date_res, :personnes, :creneau, 'en_attente', :code, :commentaires)";
-
-        $stmt = $pdo->prepare($sql_insert);
-        
-        // 4. Exécution de la requête avec les paramètres sécurisés
-        $stmt->execute([
-            ':utilisateur_id' => $utilisateur_id,
-            ':nom' => $nom_client,
-            ':tel' => $telephone,
-            ':date_res' => $date_reservation,
-            ':personnes' => $nombre_personnes,
-            ':creneau' => $creneau_id,
-            ':code' => $code_confirmation,
-            ':commentaires' => $commentaires
-        ]);
-
-        // 5. Redirection vers l'accueil avec un message de succès
-        header("Location: index.php?success=1&code=" . $code_confirmation);
-        exit;
-
-    } catch(PDOException $e) {
-        die("Erreur lors de la réservation : " . $e->getMessage());
-    }
-} else {
-    // Si on accède à la page sans soumettre le formulaire
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
     exit;
 }
-?>
+
+ensureReservationNotificationSchema($pdo);
+
+$utilisateur_id = (int) $_SESSION['utilisateur_id'];
+$nom_client = trim((string) ($_POST['nom_client'] ?? ''));
+$telephone = trim((string) ($_POST['telephone'] ?? ''));
+$email = trim((string) ($_POST['email'] ?? ($_SESSION['email'] ?? '')));
+$date_reservation = trim((string) ($_POST['date_reservation'] ?? ''));
+$nombre_personnes = (int) ($_POST['nombre_personnes'] ?? 0);
+$creneau_id = (int) ($_POST['creneau_id'] ?? 0);
+$commentaires = trim((string) ($_POST['commentaires'] ?? ''));
+
+if (
+    $nom_client === ''
+    || $telephone === ''
+    || ! isValidReservationEmail($email)
+    || $nombre_personnes < 1
+    || $nombre_personnes > 20
+    || $creneau_id < 1
+    || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_reservation)
+) {
+    header("Location: index.php?erreur=formulaire_invalide");
+    exit;
+}
+
+if ($date_reservation < date('Y-m-d')) {
+    header("Location: index.php?erreur=date_invalide");
+    exit;
+}
+
+if (function_exists('mb_substr')) {
+    $commentaires = mb_substr($commentaires, 0, 300);
+} else {
+    $commentaires = substr($commentaires, 0, 300);
+}
+
+$code_confirmation = strtoupper(substr(uniqid('RES-'), 0, 10));
+
+try {
+    $sql_insert = "
+        INSERT INTO reservations (
+            utilisateur_id,
+            nom_client,
+            telephone,
+            email,
+            date_reservation,
+            nombre_personnes,
+            creneau_id,
+            statut,
+            code_confirmation,
+            commentaires
+        ) VALUES (
+            :utilisateur_id,
+            :nom,
+            :tel,
+            :email,
+            :date_res,
+            :personnes,
+            :creneau,
+            'en_attente',
+            :code,
+            :commentaires
+        )
+    ";
+
+    $stmt = $pdo->prepare($sql_insert);
+    $stmt->execute([
+        ':utilisateur_id' => $utilisateur_id,
+        ':nom' => $nom_client,
+        ':tel' => $telephone,
+        ':email' => $email,
+        ':date_res' => $date_reservation,
+        ':personnes' => $nombre_personnes,
+        ':creneau' => $creneau_id,
+        ':code' => $code_confirmation,
+        ':commentaires' => $commentaires,
+    ]);
+
+    $reservationId = (int) $pdo->lastInsertId();
+    sendReservationConfirmationEmail($pdo, $reservationId);
+
+    header("Location: index.php?success=1&code=" . urlencode($code_confirmation));
+    exit;
+} catch (PDOException $e) {
+    http_response_code(500);
+    die("Erreur lors de la reservation.");
+}

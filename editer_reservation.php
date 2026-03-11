@@ -1,5 +1,6 @@
 <?php
 require_once 'config/database.php';
+require_once 'includes/reservation_notifier.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.php"); exit;
@@ -9,11 +10,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id           = (int)$_POST['id'];
     $statut       = in_array($_POST['statut'], ['en_attente','confirmee','annulee']) ? $_POST['statut'] : 'en_attente';
     $table_id     = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : NULL;
-    $commentaires = htmlspecialchars($_POST['commentaires'] ?? '');
+    $commentaires = trim((string) ($_POST['commentaires'] ?? ''));
 
     try {
+        ensureReservationNotificationSchema($pdo);
+
+        $statusStmt = $pdo->prepare("SELECT statut, confirmation_email_sent_at FROM reservations WHERE id = :id");
+        $statusStmt->execute([':id' => $id]);
+        $currentReservation = $statusStmt->fetch();
+
         $stmt = $pdo->prepare("UPDATE reservations SET statut=:s, table_id=:t, commentaires=:c WHERE id=:id");
         $stmt->execute([':s'=>$statut, ':t'=>$table_id, ':c'=>$commentaires, ':id'=>$id]);
+
+        $shouldSendConfirmation = $statut === 'confirmee'
+            && $currentReservation
+            && (
+                $currentReservation['statut'] !== 'confirmee'
+                || empty($currentReservation['confirmation_email_sent_at'])
+            );
+
+        if ($shouldSendConfirmation) {
+            sendReservationConfirmationEmail($pdo, $id);
+        }
+
         header("Location: admin.php?msg=updated"); exit;
     } catch (PDOException $e) { die("Erreur : " . $e->getMessage()); }
 }

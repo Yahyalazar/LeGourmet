@@ -46,71 +46,80 @@ $statutLabel = match($res['statut']) { 'confirmee'=>'✅ Confirmée','annulee'=>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#f0ece3;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+    body{font-family:'Inter',sans-serif;background:#f0ece3;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 20px}
 
     /* Toolbar screen only */
-    .toolbar{display:flex;gap:12px;margin-bottom:30px;width:100%;max-width:520px}
-    .btn-back,.btn-print{flex:1;padding:11px;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;text-decoration:none;text-align:center;transition:all .2s}
+    .toolbar{display:flex;gap:10px;margin-bottom:14px;width:100%;max-width:480px}
+    .btn-back,.btn-print{flex:1;padding:9px;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;text-decoration:none;text-align:center;transition:all .2s}
     .btn-back{background:#333;color:#fff}
     .btn-back:hover{background:#222}
     .btn-print{background:#c9a84c;color:#fff}
     .btn-print:hover{background:#b8973a}
 
     /* Ticket */
-    .ticket{background:#fff;width:100%;max-width:520px;border-radius:3px;box-shadow:0 24px 70px rgba(0,0,0,.15);position:relative;margin-top:16px}
+    .ticket{background:#fff;width:100%;max-width:480px;border-radius:3px;box-shadow:0 14px 50px rgba(0,0,0,.15);position:relative;margin-top:10px}
     /* Bord déchiré haut */
-    .ticket::before{content:'';display:block;height:18px;
-      background:linear-gradient(-45deg,#f0ece3 25%,transparent 25%) -8px 0,
-                  linear-gradient(45deg,#f0ece3 25%,transparent 25%) -8px 0,
+    .ticket::before{content:'';display:block;height:14px;
+      background:linear-gradient(-45deg,#f0ece3 25%,transparent 25%) -6px 0,
+                  linear-gradient(45deg,#f0ece3 25%,transparent 25%) -6px 0,
                   linear-gradient(-45deg,transparent 75%,#f0ece3 75%) 0 0,
                   linear-gradient(45deg,transparent 75%,#f0ece3 75%) 0 0;
-      background-size:18px 18px;background-color:#fff;
-      position:absolute;top:-18px;left:0;right:0}
+      background-size:14px 14px;background-color:#fff;
+      position:absolute;top:-14px;left:0;right:0}
     /* Bord déchiré bas */
-    .ticket::after{content:'';display:block;height:18px;
-      background:linear-gradient(-45deg,#f0ece3 25%,transparent 25%) -8px 0,
-                  linear-gradient(45deg,#f0ece3 25%,transparent 25%) -8px 0,
+    .ticket::after{content:'';display:block;height:14px;
+      background:linear-gradient(-45deg,#f0ece3 25%,transparent 25%) -6px 0,
+                  linear-gradient(45deg,#f0ece3 25%,transparent 25%) -6px 0,
                   linear-gradient(-45deg,transparent 75%,#f0ece3 75%) 0 0,
                   linear-gradient(45deg,transparent 75%,#f0ece3 75%) 0 0;
-      background-size:18px 18px;background-color:#fff;
-      position:absolute;bottom:-18px;left:0;right:0}
+      background-size:14px 14px;background-color:#fff;
+      position:absolute;bottom:-14px;left:0;right:0}
 
-    .t-head{background:#1a1a1a;padding:36px 40px 28px;text-align:center}
-    .t-head .eyebrow{font-size:.65rem;letter-spacing:.45em;color:#c9a84c;text-transform:uppercase;font-family:'Inter',sans-serif;display:block;margin-bottom:8px}
-    .t-head h1{font-family:'Playfair Display',serif;font-size:40px;color:#fff;font-weight:400;letter-spacing:2px}
+    .t-head{background:#1a1a1a;padding:18px 30px 14px;text-align:center}
+    .t-head .eyebrow{font-size:.58rem;letter-spacing:.4em;color:#c9a84c;text-transform:uppercase;font-family:'Inter',sans-serif;display:block;margin-bottom:4px}
+    .t-head h1{font-family:'Playfair Display',serif;font-size:28px;color:#fff;font-weight:400;letter-spacing:2px}
     .t-head em{color:#c9a84c;font-style:italic}
-    .gold-line{width:48px;height:1px;background:#c9a84c;margin:14px auto 0}
+    .gold-line{width:36px;height:1px;background:#c9a84c;margin:8px auto 0}
 
-    .t-statut{padding:11px 40px;text-align:center;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:<?= $statutColor ?>;background:<?= $statutColor ?>10;border-bottom:1px dashed #eee}
+    .t-statut{padding:7px 30px;text-align:center;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:<?= $statutColor ?>;background:<?= $statutColor ?>10;border-bottom:1px dashed #eee}
 
-    .t-body{padding:30px 40px}
+    .t-body{padding:16px 30px}
 
-    .code-box{background:#1a1a1a;border-radius:8px;padding:22px;text-align:center;margin-bottom:26px}
-    .code-lbl{font-size:.65rem;letter-spacing:.38em;text-transform:uppercase;color:#c9a84c;margin-bottom:8px;font-family:'Inter',sans-serif}
-    .code-val{font-family:'Courier New',Courier,monospace;font-size:34px;letter-spacing:.2em;color:#c9a84c;font-weight:700}
-    .code-hint{font-size:.72rem;color:#666;margin-top:8px;font-family:'Inter',sans-serif}
+    .code-box{background:#1a1a1a;border-radius:7px;padding:13px;text-align:center;margin-bottom:14px}
+    .code-lbl{font-size:.58rem;letter-spacing:.3em;text-transform:uppercase;color:#c9a84c;margin-bottom:4px;font-family:'Inter',sans-serif}
+    .code-val{font-family:'Courier New',Courier,monospace;font-size:24px;letter-spacing:.18em;color:#c9a84c;font-weight:700}
+    .code-hint{font-size:.65rem;color:#666;margin-top:4px;font-family:'Inter',sans-serif}
 
     table.details{width:100%;border-collapse:collapse}
     table.details tr{border-bottom:1px solid #f0f0f0}
     table.details tr:last-child{border-bottom:none}
-    table.details td{padding:13px 0;vertical-align:top}
-    table.details .lbl{font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:#aaa;width:130px;padding-right:14px;font-family:'Inter',sans-serif}
-    table.details .val{font-size:.95rem;color:#222;font-weight:500}
+    table.details td{padding:7px 0;vertical-align:top}
+    table.details .lbl{font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:#aaa;width:110px;padding-right:10px;font-family:'Inter',sans-serif}
+    table.details .val{font-size:.85rem;color:#222;font-weight:500}
 
     .t-sep{display:flex;align-items:center;margin:0 -1px}
-    .sep-circle{width:28px;height:28px;background:#f0ece3;border-radius:50%;flex-shrink:0;border:1px solid #ddd}
+    .sep-circle{width:22px;height:22px;background:#f0ece3;border-radius:50%;flex-shrink:0;border:1px solid #ddd}
     .sep-line{flex:1;border-top:1px dashed #ddd}
 
-    .t-foot{background:#fafafa;padding:20px 40px;text-align:center}
-    .barcode{display:flex;justify-content:center;align-items:flex-end;gap:2px;height:46px;margin-bottom:7px}
+    .t-foot{background:#fafafa;padding:12px 30px;text-align:center}
+    .barcode{display:flex;justify-content:center;align-items:flex-end;gap:2px;height:32px;margin-bottom:5px}
     .bar{background:#333;border-radius:1px}
-    .t-foot p{font-size:.72rem;color:#aaa;letter-spacing:.08em;font-family:'Inter',sans-serif;line-height:1.7}
+    .t-foot p{font-size:.65rem;color:#aaa;letter-spacing:.06em;font-family:'Inter',sans-serif;line-height:1.6}
 
     @media print{
-      body{background:#fff;padding:0}
-      .toolbar{display:none!important}
-      .ticket{box-shadow:none;max-width:100%;margin-top:0}
-      .ticket::before,.ticket::after{display:none}
+      @page { margin: 0; size: auto; }
+      html, body{
+        background:#f0ece3 !important;
+        -webkit-print-color-adjust:exact !important;
+        print-color-adjust:exact !important;
+        padding:20px !important;
+        justify-content:center;
+      }
+      .toolbar{display:none !important}
+      .ticket{
+        box-shadow:none !important;
+        margin-top:10px !important;
+      }
     }
   </style>
 </head>
@@ -211,6 +220,10 @@ $statutLabel = match($res['statut']) { 'confirmee'=>'✅ Confirmée','annulee'=>
     </div>
 
   </div>
+
+<script>
+  // Impression manuelle uniquement via le bouton
+</script>
 
 </body>
 </html>

@@ -1,8 +1,11 @@
 <?php
+// mes_reservations.php
 require_once 'config/database.php';
 
+// Sécurité : Réservé aux clients connectés
 if (!isset($_SESSION['utilisateur_id']) || $_SESSION['role'] !== 'client') {
-    header("Location: login.php"); exit;
+    header("Location: login.php");
+    exit;
 }
 
 require_once 'includes/header.php';
@@ -235,18 +238,18 @@ if ($msg === 'annulee'): ?>
 
           <div class="d-flex flex-wrap gap-4" style="margin-top:.6rem">
             <div>
-              <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem">Code</div>
+              <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-light);margin-bottom:.2rem">Code</div>
               <code class="confirm-code"><?= htmlspecialchars($res['code_confirmation']) ?></code>
             </div>
             <div>
-              <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem">Table</div>
+              <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-light);margin-bottom:.2rem">Table</div>
               <?php if ($res['numero_table']): ?>
                 <span class="badge bg-secondary">
                   N°<?= $res['numero_table'] ?>
                   <?php if ($res['zone_table']): ?> — <?= htmlspecialchars($res['zone_table']) ?><?php endif; ?>
                 </span>
               <?php else: ?>
-                <span style="color:var(--muted);font-style:italic;font-size:.9rem">Attribuée à l'arrivée</span>
+                <span style="color:var(--gold-light);font-style:italic;font-size:.9rem">Attribuée à l'arrivée</span>
               <?php endif; ?>
             </div>
           </div>

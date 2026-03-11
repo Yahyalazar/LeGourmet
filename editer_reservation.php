@@ -1,5 +1,6 @@
 <?php
 require_once 'config/database.php';
+require_once 'includes/reservation_notifier.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.php"); exit;
@@ -9,11 +10,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id           = (int)$_POST['id'];
     $statut       = in_array($_POST['statut'], ['en_attente','confirmee','annulee']) ? $_POST['statut'] : 'en_attente';
     $table_id     = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : NULL;
-    $commentaires = htmlspecialchars($_POST['commentaires'] ?? '');
+    $commentaires = trim((string) ($_POST['commentaires'] ?? ''));
 
     try {
+        ensureReservationNotificationSchema($pdo);
+
+        $statusStmt = $pdo->prepare("SELECT statut, confirmation_email_sent_at FROM reservations WHERE id = :id");
+        $statusStmt->execute([':id' => $id]);
+        $currentReservation = $statusStmt->fetch();
+
         $stmt = $pdo->prepare("UPDATE reservations SET statut=:s, table_id=:t, commentaires=:c WHERE id=:id");
         $stmt->execute([':s'=>$statut, ':t'=>$table_id, ':c'=>$commentaires, ':id'=>$id]);
+
+        $shouldSendConfirmation = $statut === 'confirmee'
+            && $currentReservation
+            && (
+                $currentReservation['statut'] !== 'confirmee'
+                || empty($currentReservation['confirmation_email_sent_at'])
+            );
+
+        if ($shouldSendConfirmation) {
+            sendReservationConfirmationEmail($pdo, $id);
+        }
+
         header("Location: admin.php?msg=updated"); exit;
     } catch (PDOException $e) { die("Erreur : " . $e->getMessage()); }
 }
@@ -76,10 +95,10 @@ require_once 'includes/header.php';
         foreach ($fields as [$lbl, $val, $ico]):
         ?>
         <div>
-          <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem">
+          <div style="font-family:var(--ff-b);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--t4-c);margin-bottom:.3rem">
             <i class="bi bi-<?= $ico ?> me-1"></i><?= $lbl ?>
           </div>
-          <div style="font-family:var(--ff-display);font-size:1rem;color:var(--cream)"><?= htmlspecialchars($val) ?></div>
+          <div style="font-family:var(--ff-h);font-size:1rem;color:var(--t1-c)"><?= htmlspecialchars($val) ?></div>
         </div>
         <?php endforeach; ?>
       </div>
@@ -90,7 +109,7 @@ require_once 'includes/header.php';
         <div class="alert alert-info mb-3 d-flex gap-2">
           <i class="bi bi-chat-left-quote" style="color:var(--gold);flex-shrink:0;margin-top:.1rem"></i>
           <div>
-            <div style="font-family:var(--ff-ui);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:.2rem">Demande du client</div>
+            <div style="font-family:var(--ff-b);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:.2rem">Demande du client</div>
             <?= htmlspecialchars($originalComment) ?>
           </div>
         </div>
@@ -133,7 +152,7 @@ require_once 'includes/header.php';
         </div>
 
         <!-- Status color preview -->
-        <div id="statusPreview" style="font-family:var(--ff-ui);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.2rem;opacity:.7"></div>
+        <div id="statusPreview" style="font-family:var(--ff-b);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.2rem;opacity:.7"></div>
 
         <div class="divider-gold"><span>✦</span></div>
 
@@ -155,9 +174,9 @@ require_once 'includes/header.php';
   const sel = document.getElementById('statut');
   const prev = document.getElementById('statusPreview');
   const map = {
-    'en_attente': { c:'var(--warning)', t:'⏳ Statut : En attente — la confirmation sera envoyée par le restaurant' },
-    'confirmee':  { c:'var(--success)', t:'✅ Statut : Confirmée — le client verra sa réservation comme validée' },
-    'annulee':    { c:'var(--danger)',  t:'❌ Statut : Annulée — la réservation sera marquée comme annulée' }
+    'en_attente': { c:'var(--warn)', t:'⏳ Statut : En attente — la confirmation sera envoyée par le restaurant' },
+    'confirmee':  { c:'var(--ok)', t:'✅ Statut : Confirmée — le client verra sa réservation comme validée' },
+    'annulee':    { c:'var(--err)',  t:'❌ Statut : Annulée — la réservation sera marquée comme annulée' }
   };
   function upd() {
     const v = map[sel.value];

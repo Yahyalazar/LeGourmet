@@ -20,10 +20,7 @@ $tomorrowStr = date('Y-m-d', strtotime('+1 day'));
 try {
     $sql = "
         SELECT
-            r.id,
-            r.nom_client,
-            r.email,
-            r.telephone,
+            r.id,r.nom_client,r.email, r.telephone,
             r.date_reservation,
             r.nombre_personnes,
             r.statut,
@@ -212,7 +209,7 @@ require_once 'includes/header.php';
 
       <div class="card admin-card <?= $border ?> h-100">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-1">
-          <span class="date-label">
+          <span class="date-label" style="color:var(--gold);">
             <i class="bi bi-calendar3 me-1" style="opacity:.5"></i>
             <?= date('d/m/Y', strtotime($res['date_reservation'])) ?>
             &middot; <?= htmlspecialchars($res['heure'] ?? '?') ?>

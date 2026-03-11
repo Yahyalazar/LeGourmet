@@ -92,10 +92,6 @@ require_once 'includes/header.php';
     </div>
   </div>
 
-  <p class="text-center mt-3" style="font-family:var(--ff-u);font-size:.57rem;letter-spacing:.08em;color:var(--t4-c);opacity:.6">
-    <i class="bi bi-info-circle me-1"></i>
-    Admin : admin@legourmet.fr &nbsp;|&nbsp; Client : client@test.com
-  </p>
 
 </div>
 </div>

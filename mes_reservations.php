@@ -11,6 +11,7 @@ if (!isset($_SESSION['utilisateur_id']) || $_SESSION['role'] !== 'client') {
 require_once 'includes/header.php';
 
 try {
+    // Ajoute les colonnes manquantes pour rester compatible avec une ancienne base.
     $columns = $pdo->query("SHOW COLUMNS FROM reservations LIKE 'utilisateur_id'")->fetchAll();
     if (empty($columns))
         $pdo->exec("ALTER TABLE reservations ADD COLUMN utilisateur_id INT(11) DEFAULT NULL");
@@ -19,6 +20,7 @@ try {
     if (empty($colEmail))
         $pdo->exec("ALTER TABLE reservations ADD COLUMN email VARCHAR(150) NOT NULL DEFAULT ''");
 
+    // Charge les reservations du client avec le creneau et la table associes.
     $sql = "
         SELECT r.*, c.heure, c.service, t.numero AS numero_table, t.zone AS zone_table
         FROM reservations r
@@ -33,6 +35,7 @@ try {
 } catch (PDOException $e) { die("Erreur : " . $e->getMessage()); }
 
 $mois      = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+// Ces compteurs servent au resume affiche au-dessus de la liste.
 $total     = count($reservations);
 $confirmee = count(array_filter($reservations, fn($r) => $r['statut'] === 'confirmee'));
 $attente   = count(array_filter($reservations, fn($r) => $r['statut'] === 'en_attente'));

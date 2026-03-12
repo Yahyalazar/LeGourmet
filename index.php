@@ -1,14 +1,17 @@
 <?php
 require_once 'config/database.php';
+// Cette page n'est accessible qu'aux utilisateurs connectes.
 if (!isset($_SESSION['utilisateur_id'])) {
     header("Location: login.php?erreur=connexion_requise_reservation"); exit;
 }
 require_once 'includes/header.php';
 
 try {
+    // Charge les creneaux disponibles pour alimenter la liste du formulaire.
     $creneaux = $pdo->query("SELECT id, heure, service FROM creneaux ORDER BY service, heure")->fetchAll();
 } catch (PDOException $e) { die("Erreur : " . $e->getMessage()); }
 
+// Pre-remplit l'email depuis la session si disponible.
 $email = htmlspecialchars($_SESSION['email'] ?? '');
 ?>
 

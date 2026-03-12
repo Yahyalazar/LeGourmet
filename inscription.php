@@ -1,8 +1,10 @@
 <?php
 require_once 'config/database.php';
+// Redirige l'utilisateur s'il est deja connecte.
 if (isset($_SESSION['utilisateur_id'])) { header("Location: index.php"); exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Recupere et nettoie les donnees du formulaire d'inscription.
     $email = trim(htmlspecialchars($_POST['email'] ?? ''));
     $mdp   = $_POST['mot_de_passe'] ?? '';
     $conf  = $_POST['mot_de_passe_confirm'] ?? '';
@@ -16,11 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($mdp !== $conf)
         $err = "Les mots de passe ne correspondent pas.";
     else {
+        // Verifie si l'email existe deja dans la base.
         $c = $pdo->prepare("SELECT id FROM utilisateurs WHERE email=:e");
         $c->execute([':e'=>$email]);
         if ($c->fetch()) {
             $err = "Cette adresse email est déjà utilisée.";
         } else {
+            // Hash le mot de passe avant de creer le compte client.
             $hash = password_hash($mdp, PASSWORD_BCRYPT, ['cost'=>12]);
             $i = $pdo->prepare("INSERT INTO utilisateurs (email,mot_de_passe,role) VALUES (:e,:h,'client')");
             if ($i->execute([':e'=>$email,':h'=>$hash]))

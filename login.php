@@ -1,24 +1,29 @@
 <?php
 require_once 'config/database.php';
+// Redirige l'utilisateur s'il a deja une session active.
 if (isset($_SESSION['utilisateur_id'])) { header("Location: index.php"); exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Recupere les identifiants saisis dans le formulaire.
     $email = trim($_POST['email'] ?? '');
     $mdp   = $_POST['mot_de_passe'] ?? '';
 
     if (!$email || !$mdp) {
         $err = "Veuillez remplir tous les champs.";
     } else {
+        // Recherche le compte par email puis verifie le mot de passe hashé.
         $s = $pdo->prepare("SELECT * FROM utilisateurs WHERE email = :e");
         $s->execute([':e' => $email]);
         $u = $s->fetch();
         if ($u && password_verify($mdp, $u['mot_de_passe'])) {
+            // Regenere l'identifiant de session et stocke les infos utiles.
             session_regenerate_id(true);
             $_SESSION['utilisateur_id'] = $u['id'];
             $_SESSION['role']           = $u['role'];
             $_SESSION['email']          = $u['email'];
             header("Location: " . ($u['role'] === 'admin' ? 'admin.php' : 'index.php')); exit;
         } else {
+            // Ajoute une petite pause pour ralentir les tentatives repetees.
             $err = "Email ou mot de passe incorrect.";
             usleep(400000);
         }
